@@ -87,90 +87,152 @@ class Crud:
         Interface.Dictionary(result) # apresenta informações em forma de dicionário
         
     # Update
-    def Update(self, id, albumName, bandName, albumDate):
+    def Update(self, id):
         sql = ''' UPDATE Album
                 SET nome_album = ?,
                     nome_banda = ?,
                     data_album = ? 
-                WHERE id = ?'''
+                WHERE id = ? '''
         
-        try:
-            self.cursor.execute(sql, (albumName, bandName, albumDate, id))
-        except Exception as e:
-            Interface.WriteLow('[x] Falha na alteração do registro [x]')
-            Interface.WriteLow(f'[x] Revertendo operação (rollback) [x]: {e}')
-            self.db.rollback()
+        id = self.IdValidation(id)        
+        self.GetById(id)
+
+        option = input("Tem certeza da alteração? [S/N]: ").upper()[0]
+        while (option not in 'SN'):
+            print("Entre com S ou N")
+            option = input("Tem certeza da alteração? [S/N]: ").upper()[0]
+        if (option in 'S'):
+
+            albumName = input('Nome do album: ')
+            bandName = input('Nome da banda: ')
+            albumDate = input('Data do album: ')
+            try:
+                self.cursor.execute(sql, (albumName, bandName, albumDate, id))
+            except Exception as e:
+                Interface.WriteLow('[x] Falha na alteração do registro [x]')
+                Interface.WriteLow(f'[x] Revertendo operação (rollback) [x]: {e}')
+                self.db.rollback()
+            else:
+                self.db.commit()  
+                Interface.WriteLow('[!] Registro alterado com sucesso [!]')  
         else:
-            self.db.commit()  
-            Interface.WriteLow('[!] Registro alterado com sucesso [!]')  
+            Interface.WriteLow('[!] Alteração cancelada [!]')
+            self.db.rollback()
+
 
     # Delete
     def Delete(self, id):
         sql = '''DELETE FROM ALBUM
                 WHERE id = ?;'''
 
-        try:
-            self.cursor.execute(sql, id)
-        except Exception as e:
-            Interface.WriteLow('[x] Falha ao remover registro [x]')
-            Interface.WriteLow(f'[x] Revertendo operação (rollback) [x]: {e}')
-            self.db.rollback()
+        id = self.IdValidation(id)
+        self.GetById(id)
+        Interface.Lines()
+
+        option = input("Tem certeza da exclusão? [S/N]: ").upper()[0]
+        while (option not in 'SN'):
+            print("Entre com S ou N")
+            option = input("Tem certeza da exclusão? [S/N]: ").upper()[0]
+        if (option in 'S'):         
+            try:
+                self.cursor.execute(sql, id)
+            except Exception as e:
+                Interface.WriteLow('[x] Falha ao remover registro [x]')
+                Interface.WriteLow(f'[x] Revertendo operação (rollback) [x]: {e}')
+                self.db.rollback()
+            else:
+                self.db.commit()
+                Interface.WriteLow('[!] Registro removido com sucesso [!]')
         else:
-            self.db.commit()
-            Interface.WriteLow('[!] Registro removido com sucesso [!]')
+            Interface.WriteLow('[!] Exclusão cancelada [!]')
+            self.db.rollback()
 
-
-    def getById(self, id):
+    def GetById(self, id):
         sql = ''' SELECT * FROM album
                   WHERE id = ? '''
         result = self.cursor.execute(sql, id)
         result = result.fetchall()        
         Interface.Dictionary(result)
-
+    
+    def GetAllId(self):
+        sql = "SELECT * FROM album"
+                  
+        result = self.cursor.execute(sql)
+        result = result.fetchall()        
+        
+        listId = list()
+        for row in result:
+            listId.append(row[0])
+        return listId
 
     def dbClose(self):
         self.cursor.close()
 
+    # Validações
+    def IdValidation(self, id): # validação de Ids        
+        while True:
+            try:
+                allIds = self.GetAllId() # pegando lista com todos os Id's
+                if (allIds.count(int(id)) == 1):
+                    break            
+                else:
+                    Interface.WriteLow(f"O Album com o id {id} não existe!")
+                    print(f'\nALBUNS DISPONÍVEIS: ')
+                    self.Read()
+                    Interface.Lines()
+                    id = input("\nSelecione um Album existente: ")
+            except Exception as e:
+                Interface.WriteLow(f'Entre apenas com números no ID! Erro: {e}')
+                id = input("Id Correto: ")
+        return id
 
-# programa principal
+
+
+# main program
 if __name__ == '__main__':
     crud = Crud()
     if (crud.fatalError):
         Interface.WriteLow('ERRO FATAL! NÃO PODEMOS DAR PROSSEGUIMENTO A APLICAÇÃO')
         exit()
 
-    print(f'\n{"Bem-vindo(a) a Discografia UGB!!!":^30}')
-
+    Interface.Lines()
+    print(f'{"Bem-vindo(a) a Discografia UGB!!!":^30}')
+    
     while True:
         Interface.Menu()
-        option = int(input('\nSua opção: '))
+        option = int()
+        try:
+            option = int(input('\nSua opção: '))
+        except Exception as e:
+            Interface.WriteLow(f'Entre apenas com números! Erro: {e}')
+            continue        
 
-        if (option == 1):
+        if (option == 1): # Ler dados
             crud.Read()
-        elif (option == 2):
+
+        elif (option == 2): # Inserir dados
             Interface.Lines()
             albumName = input('Nome do album: ')
             bandName = input('Nome da banda: ')
-            albumDate = input('Data do album: ')  
-            
+            albumDate = input('Data do album: ')            
             crud.Insert(albumName, bandName, albumDate)
-        elif (option == 3):
+
+        elif (option == 3): # Atualizar dados
             Interface.LinesMenu()
             id = input('Qual Album deseja alterar? [informe o id]: ')
+            crud.Update(id)
 
-            crud.getById(id)
-            Interface.Lines()
-            albumName = input('Nome do album: ')
-            bandName = input('Nome da banda: ')
-            albumDate = input('Data do album: ')  
-
-            crud.Update(id, albumName, bandName, albumDate)
-        elif (option == 4):
+        elif (option == 4): # Deletar dados
             Interface.LinesMenu()
             id = input('Qual Album deseja deletar? [informe o id]: ')
-
             crud.Delete(id)
+
         elif (option == 5):
-            print('\nVolte sempre!')
+            Interface.Lines()
+            print(f'{"VOLTE SEMPRE!":^40}')
+            Interface.Lines()
             crud.dbClose()
             break
+        
+        else:
+            Interface.WriteLow("OPÇÃO INVÁLIDA")
