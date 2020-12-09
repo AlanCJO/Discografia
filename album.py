@@ -122,8 +122,8 @@ class Crud:
 
     # Delete
     def Delete(self, id):
-        sql = '''DELETE FROM ALBUM
-                WHERE id = ?;'''
+        sql = f'''DELETE FROM ALBUM
+                WHERE id = {id};'''
 
         id = self.IdValidation(id)
         self.GetById(id)
@@ -135,7 +135,7 @@ class Crud:
             option = input("Tem certeza da exclusão? [S/N]: ").upper()[0]
         if (option in 'S'):         
             try:
-                self.cursor.execute(sql, id)
+                self.cursor.execute(sql)
             except Exception as e:
                 Interface.WriteLow('[x] Falha ao remover registro [x]')
                 Interface.WriteLow(f'[x] Revertendo operação (rollback) [x]: {e}')
@@ -148,9 +148,9 @@ class Crud:
             self.db.rollback()
 
     def GetById(self, id):
-        sql = ''' SELECT * FROM album
-                  WHERE id = ? '''
-        result = self.cursor.execute(sql, id)
+        sql = f''' SELECT * FROM album
+                  WHERE id = {id} '''
+        result = self.cursor.execute(sql)
         result = result.fetchall()        
         Interface.Dictionary(result)
     
@@ -185,7 +185,6 @@ class Crud:
                 Interface.WriteLow(f'Entre apenas com números no ID! Erro: {e}')
                 id = input("Id Correto: ")
         return id
-
 
 
 # main program
