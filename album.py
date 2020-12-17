@@ -169,7 +169,8 @@ class Crud:
         self.cursor.close()
 
     # Validações
-    def IdValidation(self, id): # validação de Ids        
+    def IdValidation(self, id): # validação de Ids    
+        from time import sleep    
         while True:
             try:
                 allIds = self.GetAllId() # pegando lista com todos os Id's
@@ -179,6 +180,7 @@ class Crud:
                     Interface.WriteLow(f"O Album com o id {id} não existe!")
                     print(f'\nALBUNS DISPONÍVEIS: ')
                     self.Read()
+                    sleep(2)
                     Interface.Lines()
                     id = input("\nSelecione um Album existente: ")
             except Exception as e:
